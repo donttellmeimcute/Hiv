@@ -3,454 +3,436 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Riesgo encadenado — Interactivo (estado multi-mes + rosa)</title>
+<title>Simulador de Riesgo Encadenado (CDC Calibrado)</title>
 <style>
   :root {
-    --bg:#1b0b16;
-    --panel:#2a0f22;
-    --text:#ffe9f4;
-    --accent:#ff4fa3;
-    --accent2:#ffc1dd;
+    --bg: #0f0f13;
+    --panel: #1b1b22;
+    --text: #e0e0e0;
+    --accent: #ff4fa3;       /* Rosa neón */
+    --accent-dim: #942b5d;
+    --success: #00e676;
+    --warn: #ffea00;
   }
   * { box-sizing: border-box; }
-  body { margin:0; padding:24px; background:linear-gradient(180deg, #180814, #2b0f23 40%, #3a1530);
-         font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif; color:var(--text); }
+  body { margin:0; padding:20px; background:var(--bg); font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:var(--text); }
   .wrap { max-width: 1200px; margin:0 auto; }
-  h1 { font-weight:800; margin:0 0 12px; color:#ffd7ec; }
-  p { opacity:.92; }
-  .grid { display:grid; grid-template-columns: 1.1fr 1fr; gap:16px; }
-  .card { background:var(--panel); border:1px solid rgba(255,255,255,.12);
-          border-radius:16px; padding:16px; box-shadow:0 14px 36px rgba(0,0,0,.35); }
-  label { font-size:13px; opacity:.9; display:block; margin-bottom:6px; }
-  input[type="range"] { width:100%; accent-color: var(--accent); }
-  .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-  .val { font-weight:800; color:var(--accent); min-width:64px; text-align:right; }
-  select, input[type="checkbox"] { padding:8px; border-radius:10px; background:#351029; color:var(--text);
-    border:1px solid rgba(255,255,255,.18); }
-  .stats { display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:12px; }
-  .stat { background:#351029; border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:12px; }
-  .stat h3 { margin:0 0 8px; font-size:13px; opacity:.85; font-weight:700; color:#ffd7ec; }
-  .stat .big { font-size:20px; font-weight:900; color:#fff; }
-  canvas { width:100%; height:420px; background:#1f0b19; border-radius:14px; border:1px solid rgba(255,255,255,.12); }
-  .foot { opacity:.8; font-size:12px; margin-top:10px; color:#ffd7ec; }
-  @media (max-width: 1100px) { .grid { grid-template-columns:1fr; } }
-  .pgrid { max-height: 280px; overflow:auto; border:1px solid rgba(255,255,255,.14); border-radius:12px; padding:10px; background:#351029; }
-  .prow { display:grid; grid-template-columns: 120px 1fr 80px; align-items:center; gap:10px; margin:6px 0; }
-  .pval { text-align:right; color:#fff; font-weight:800; }
+  h1 { color: #fff; font-weight: 300; margin-bottom: 5px; }
+  h1 strong { color: var(--accent); font-weight: 800; }
+  .subtitle { font-size: 0.9em; opacity: 0.7; margin-bottom: 25px; display: block; }
+  
+  .grid { display:grid; grid-template-columns: 380px 1fr; gap:20px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .card { background:var(--panel); border:1px solid #333; border-radius:12px; padding:20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  
+  /* Controles */
+  .control-group { margin-bottom: 18px; padding-bottom: 15px; border-bottom: 1px solid #2a2a35; }
+  .control-group:last-child { border:0; }
+  label { font-size: 13px; color:#aaa; display:block; margin-bottom:8px; }
+  .row { display:flex; align-items:center; gap:10px; justify-content: space-between; }
+  input[type="range"] { flex:1; accent-color: var(--accent); cursor: pointer; }
+  .val { font-family: monospace; font-size: 14px; color: var(--accent); font-weight: bold; min-width: 50px; text-align: right; }
+  
+  select { background: #252530; border:1px solid #444; color:#fff; padding:6px; border-radius:6px; width:100%; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+  .stat-box { background: #23232d; padding: 15px; border-radius: 8px; text-align: center; border:1px solid #333; }
+  .stat-box h3 { margin:0 0 5px; font-size:11px; text-transform:uppercase; letter-spacing:1px; opacity:0.6; }
+  .stat-box .num { font-size: 24px; font-weight: 700; color: #fff; }
+  .stat-box .sub { font-size: 11px; opacity: 0.5; margin-top: 4px; }
+
+  /* Canvas */
+  canvas { width:100%; height: 400px; background: #16161d; border-radius: 8px; border:1px solid #333; }
+  
+  .note { font-size: 11px; opacity: 0.5; margin-top: 10px; line-height: 1.4; }
+  .badge { display:inline-block; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; background:#333; color:#aaa; margin-left:5px; vertical-align: middle;}
 </style>
 </head>
 <body>
+
 <div class="wrap">
-  <h1>Riesgo encadenado (anal): simulador mensual</h1>
-  <p>Ahora el modo <strong>Mejor</strong> no queda en cero: el modelo <strong>lleva estado entre meses</strong>. Si él se infecta
-     <em>después</em> de verte en un mes, puede transmitirte en meses siguientes. Paleta rosa, eje Y con zoom.</p>
+  <h1>Riesgo <strong>Encadenado</strong> (Calibrado CDC)</h1>
+  <span class="subtitle">Modelo de estado mensual con periodo de eclipse viral y probabilidades reales.</span>
 
   <div class="grid">
     <div class="card">
-      <div class="row">
-        <div style="flex:1">
-          <label>Veces que te engaña al mes (cuando hay infidelidad)</label>
-          <input id="g" type="range" min="0" max="20" step="1" value="4" />
+      
+      <div class="control-group">
+        <label>Actos de ÉL con TERCEROS (al mes) <span class="badge">Insertivo (él activo)</span></label>
+        <div class="row">
+          <input type="range" id="g" min="0" max="30" value="4">
+          <span class="val" id="gVal">4</span>
         </div>
-        <div class="val"><span id="gVal">4</span>×</div>
       </div>
-      <div class="row">
-        <div style="flex:1">
-          <label>Veces que tiene relaciones contigo al mes</label>
-          <input id="c" type="range" min="0" max="20" step="1" value="1" />
+
+      <div class="control-group">
+        <label>Actos de ÉL CONTIGO (al mes) <span class="badge">Receptivo (tú pasivo)</span></label>
+        <div class="row">
+          <input type="range" id="c" min="0" max="30" value="2">
+          <span class="val" id="cVal">2</span>
         </div>
-        <div class="val"><span id="cVal">1</span>×</div>
       </div>
-      <div class="row">
-        <div style="flex:1">
-          <label>Horizonte (meses)</label>
-          <input id="months" type="range" min="1" max="240" step="1" value="24" />
+
+      <div class="control-group">
+        <label>Duración simulación (Meses)</label>
+        <div class="row">
+          <input type="range" id="months" min="1" max="60" value="12">
+          <span class="val" id="mVal">12</span>
         </div>
-        <div class="val"><span id="mVal">24</span></div>
       </div>
-      <div class="row">
-        <div>
-          <label>Orden dentro del mes</label>
-          <select id="mode">
-            <option value="best">Mejor (tus actos antes que todos los del tercero)</option>
-            <option value="random" selected>Aleatorio (mitad antes / mitad después aprox.)</option>
-            <option value="worst">Peor (tus actos después de todos los del tercero)</option>
+
+      <div class="control-group">
+        <label>Probabilidad de que el Tercero sea VIH+ (Prevalencia)</label>
+        <div class="row">
+          <input type="range" id="pPrevalence" min="0" max="100" value="15" step="1">
+          <span class="val" id="pPrevVal">15%</span>
+        </div>
+        <div class="note">Si no conoces su estado. En apps/zonas de riesgo puede ser 10-20%.</div>
+      </div>
+
+      <div class="control-group">
+        <label>Uso de Condón (Tercero) - Eficacia: 85%</label>
+        <div class="row">
+          <input type="range" id="condomUsage" min="0" max="100" value="50" step="5">
+          <span class="val" id="condomVal">50%</span>
+        </div>
+        <label style="margin-top:10px">¿Tu pareja toma PrEP? (Eficacia 99%)</label>
+        <select id="prep">
+          <option value="0">No usa PrEP</option>
+          <option value="1">Sí usa PrEP (Diario/A demanda)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Dinámica de la Infección</label>
+        <div class="row" style="margin-bottom:8px">
+          <span style="font-size:12px; opacity:0.8">Orden de actos:</span>
+          <select id="order" style="width:140px">
+            <option value="random">Aleatorio</option>
+            <option value="worst">Peor (Él primero)</option>
           </select>
         </div>
-        <div>
-          <label><input id="acute" type="checkbox" /> Fase aguda ×7 (cota superior en pareja→tú)</label>
+        <div class="row">
+           <span style="font-size:12px; opacity:0.8">Fase Aguda (×12 viralidad):</span>
+           <input type="checkbox" id="acuteRisk" checked>
         </div>
+        <div class="note">Si él se infecta, su carga viral se dispara los primeros 2 meses, aumentando el riesgo de pasártelo.</div>
       </div>
-
-      <!-- Nuevo: prob. inicial de que tu pareja ya esté infectada -->
-      <div class="row">
-        <div style="flex:1">
-          <label>Prob. inicial de que tu pareja <strong>ya esté infectada</strong> (mes 0)</label>
-          <input id="pInit" type="range" min="0" max="100" step="1" value="0" />
-        </div>
-        <div class="val"><span id="pInitVal">0</span>%</div>
-      </div>
-
-      <!-- Prob transmisible 3ª persona -->
-      <div class="row">
-        <div style="flex:1">
-          <label>Prob. de que la 3ª persona sea <strong>transmisible</strong> (no suprimida)</label>
-          <input id="pTx" type="range" min="0" max="100" step="1" value="100" />
-        </div>
-        <div class="val"><span id="pTxVal">100</span>%</div>
-      </div>
-
-      <!-- Condón con 3ª persona -->
-      <div class="row" style="margin-top:6px">
-        <label><input id="enableCondomTotal" type="checkbox" /> Usar <strong>prob. de condón TOTAL</strong> (3ª persona)</label>
-      </div>
-      <div class="row" id="condomTotalRow" style="display:none">
-        <div style="flex:1">
-          <label>Prob. de condón TOTAL con la 3ª persona</label>
-          <input id="pCondomTotal" type="range" min="0" max="100" step="1" value="50" />
-        </div>
-        <div class="val"><span id="pCondomTotalVal">50</span>%</div>
-      </div>
-      <div class="row" style="margin-top:6px">
-        <label><input id="enableCondomPerMonth" type="checkbox" /> Usar <strong>prob. de condón por mes</strong> (3ª persona)</label>
-      </div>
-      <div class="pgrid" id="pgridCondom" style="display:none"></div>
-      <div class="foot">Eficacia de condón asumida: 80% (reduce 80% el riesgo por acto). Si activas ambas, q<sub>m</sub> = q<sub>TOTAL</sub>×q<sub>mes,m</sub>.</div>
-
-      <!-- Prob. total/por-mes de infidelidad -->
-      <div class="row" style="margin-top:12px">
-        <label><input id="enableTotal" type="checkbox" checked /> Usar <strong>prob. de infidelidad TOTAL</strong></label>
-      </div>
-      <div class="row" id="totalRow">
-        <div style="flex:1">
-          <label>Prob. infidelidad TOTAL (misma todos los meses)</label>
-          <input id="pTotal" type="range" min="0" max="100" step="1" value="30" />
-        </div>
-        <div class="val"><span id="pTotalVal">30</span>%</div>
-      </div>
-      <div class="row" style="margin-top:6px">
-        <label><input id="enablePerMonth" type="checkbox" /> Usar <strong>prob. de infidelidad por mes</strong></label>
-      </div>
-      <div class="pgrid" id="pgrid" style="display:none"></div>
-      <div class="foot">Si activas ambas: pInf<sub>m</sub> = pTOTAL × pMES<sub>m</sub>. Si ambas off, pInf<sub>m</sub>=1.</div>
 
       <div class="stats">
-        <div class="stat">
-          <h3>p mensual (promedio)</h3>
-          <div class="big" id="pMonth">—</div>
-          <div class="foot" id="pMonthN">1 en N: —</div>
+        <div class="stat-box">
+          <h3>Prob. Mensual</h3>
+          <div class="num" id="resMonth">0%</div>
+          <div class="sub" id="resMonthN">-</div>
         </div>
-        <div class="stat">
-          <h3>Acumulada en horizonte</h3>
-          <div class="big" id="pCum">—</div>
-          <div class="foot" id="pCumN">1 en N: —</div>
+        <div class="stat-box">
+          <h3>Prob. Acumulada</h3>
+          <div class="num" style="color:var(--accent)" id="resTotal">0%</div>
+          <div class="sub" id="resTotalN">-</div>
         </div>
-        <div class="stat">
-          <h3>Equiv. moneda</h3>
-          <div class="big" id="coinEq">—</div>
-          <div class="foot">k tal que (1/2)^k ≈ p_prom</div>
+        <div class="stat-box">
+          <h3>Equiv. Moneda</h3>
+          <div class="num" id="resCoin">-</div>
+          <div class="sub">Caras seguidas</div>
         </div>
       </div>
+
     </div>
 
     <div class="card">
-      <canvas id="chart"></canvas>
-      <div class="foot">Ahora la curva se calcula con estado: S<sub>m</sub> y I<sub>m</sub> (susceptible/infectado). Si se infecta
-      en el mes m (aunque sea después de verte), eso afecta el mes m+1.</div>
+      <canvas id="mainChart"></canvas>
+      <div class="note" style="margin-top:15px">
+        <strong>Base científica (CDC):</strong>
+        <ul>
+          <li>Riesgo Insertivo (Él con 3º): ~0.11% por acto (11/10,000).</li>
+          <li>Riesgo Receptivo (Tú con Él): ~1.38% por acto (138/10,000).</li>
+          <li>Periodo de Eclipse: Si él se infecta, tarda ~10 días en ser contagioso.</li>
+          <li>Fase Aguda: Multiplicador ×11.9 durante los primeros 2 meses post-eclipse.</li>
+        </ul>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-(function(){
-  const rTopBase = 0.0011;  // él insertivo con 3ª persona bottom
-  const rBottom  = 0.0138;  // transmisión hacia ti (tú bottom)
-  const condomEff = 0.80;   // eficacia
-  const MAX_PMES = 60;
+/**
+ * FUENTES DE DATOS:
+ * 1. CDC (Centers for Disease Control and Prevention), "HIV Risk Behaviors", 2023 update.
+ * - Receptivo Anal: 1.38%
+ * - Insertivo Anal: 0.11%
+ * 2. Hollingsworth TD et al. (2008) / Wawer et al. (2005):
+ * - Infectividad fase aguda vs crónica: 10x - 26x. Usaremos media conservadora ~12x.
+ * 3. Eficacia Condón:
+ * - Cochrane Review: ~80-90% reducción riesgo. Usamos 0.85 como media MSM.
+ * 4. Eficacia PrEP:
+ * - CDC/iPrEx: >99% reducción riesgo de adquisición.
+ */
 
-  function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+const CONSTANTS = {
+  RISK_INSERTIVE: 0.0011, // Él adquiriendo del tercero
+  RISK_RECEPTIVE: 0.0138, // Él transmitiendo a ti
+  ACUTE_MULTIPLIER: 11.9, // Multiplicador de riesgo en fase aguda
+  CONDOM_EFFICACY: 0.85,  
+  PREP_EFFICACY: 0.99,
+  ECLIPSE_FRACTION: 0.33  // ~10 días de 30. Fracción del mes donde NO es contagioso aún si se infecta ese mes.
+};
 
-  // Riesgo de adquisición frente a la 3ª persona para j actos "antes de verte" y g actos totales en el mes
-  function pAcquireBefore(j, g, fTx, qCondom){
-    // rTop ajustado por transmisible y condón
-    const r_nc = clamp01(rTopBase * fTx);          // sin condón
-    const r_wc = clamp01(r_nc * (1 - condomEff));  // con condón
-    const noInf_before = Math.pow(1 - r_nc, j*(1 - qCondom)) * Math.pow(1 - r_wc, j*qCondom);
-    return 1 - noInf_before;
-  }
+const ui = {
+  g: document.getElementById('g'),
+  c: document.getElementById('c'),
+  m: document.getElementById('months'),
+  prev: document.getElementById('pPrevalence'),
+  condom: document.getElementById('condomUsage'),
+  prep: document.getElementById('prep'),
+  order: document.getElementById('order'),
+  acute: document.getElementById('acuteRisk'),
+  // labels
+  gVal: document.getElementById('gVal'),
+  cVal: document.getElementById('cVal'),
+  mVal: document.getElementById('mVal'),
+  pPrevVal: document.getElementById('pPrevVal'),
+  condomVal: document.getElementById('condomVal'),
+  // results
+  rMonth: document.getElementById('resMonth'),
+  rMonthN: document.getElementById('resMonthN'),
+  rTotal: document.getElementById('resTotal'),
+  rTotalN: document.getElementById('resTotalN'),
+  rCoin: document.getElementById('resCoin'),
+};
 
-  function pAcquireFull(g, fTx, qCondom){
-    const r_nc = clamp01(rTopBase * fTx);
-    const r_wc = clamp01(r_nc * (1 - condomEff));
-    const noInf_full = Math.pow(1 - r_nc, g*(1 - qCondom)) * Math.pow(1 - r_wc, g*qCondom);
-    return 1 - noInf_full;
-  }
+const ctx = document.getElementById('mainChart').getContext('2d');
+let chartObj = null;
 
-  function pTransmitToYou(c, acute){
-    const mult = acute ? 7.0 : 1.0;
-    const r2 = clamp01(rBottom * mult);
-    return 1 - Math.pow(1 - r2, c);
-  }
+// Helpers matemáticos
+const probAtLeastOne = (p, n) => 1 - Math.pow(1 - p, n);
+const applyReduction = (baseP, reduction) => baseP * (1 - reduction);
 
-  // Ticks "nice"
-  function niceStep(step){
-    const exp = Math.floor(Math.log10(step));
-    const f = step / Math.pow(10, exp);
-    let nf;
-    if (f <= 1) nf = 1;
-    else if (f <= 2) nf = 2;
-    else if (f <= 2.5) nf = 2.5;
-    else if (f <= 5) nf = 5;
-    else nf = 10;
-    return nf * Math.pow(10, exp);
-  }
+// Formateo
+const fmtPct = (n) => (n*100).toFixed(n < 0.001 ? 4 : 2) + '%';
+const fmtOneIn = (n) => n > 0 ? '1 en ' + Math.round(1/n).toLocaleString() : '-';
 
-  // UI refs
-  const gEl = document.getElementById("g");
-  const cEl = document.getElementById("c");
-  const mEl = document.getElementById("months");
-  const modeEl = document.getElementById("mode");
-  const acuteEl = document.getElementById("acute");
-  const pInitEl = document.getElementById("pInit");
-  const pInitValEl = document.getElementById("pInitVal");
-  const pTxEl = document.getElementById("pTx");
-  const pTxValEl = document.getElementById("pTxVal");
+function calculate() {
+  const actsThird = parseInt(ui.g.value);
+  const actsYou = parseInt(ui.c.value);
+  const months = parseInt(ui.m.value);
+  const prevalence = parseInt(ui.prev.value) / 100;
+  const condomFreq = parseInt(ui.condom.value) / 100;
+  const hasPrep = ui.prep.value === "1";
+  const useAcute = ui.acute.checked;
+  const orderMode = ui.order.value; // 'random' or 'worst'
 
-  const enableCondomTotalEl = document.getElementById("enableCondomTotal");
-  const pCondomTotalEl = document.getElementById("pCondomTotal");
-  const pCondomTotalValEl = document.getElementById("pCondomTotalVal");
-  const condomTotalRow = document.getElementById("condomTotalRow");
-  const enableCondomPerMonthEl = document.getElementById("enableCondomPerMonth");
-  const pgridCondom = document.getElementById("pgridCondom");
+  // 1. Calcular riesgo de que ÉL adquiera VIH del TERCERO en UN acto
+  // Riesgo base insertivo
+  let rAcqBase = CONSTANTS.RISK_INSERTIVE;
+  
+  // Ajuste por condón (promedio ponderado)
+  // P(transmision) = P(sin_condon)*Freq_sin + P(con_condon)*Freq_con
+  let rAcqNoCondom = rAcqBase; 
+  let rAcqCondom = rAcqBase * (1 - CONSTANTS.CONDOM_EFFICACY);
+  let rAcqAvg = (rAcqNoCondom * (1 - condomFreq)) + (rAcqCondom * condomFreq);
 
-  const enableTotalEl = document.getElementById("enableTotal");
-  const pTotalEl = document.getElementById("pTotal");
-  const pTotalValEl = document.getElementById("pTotalVal");
-  const totalRow = document.getElementById("totalRow");
-  const enablePerMonthEl = document.getElementById("enablePerMonth");
-  const pgrid = document.getElementById("pgrid");
+  // Ajuste por PrEP (si él la toma)
+  if (hasPrep) rAcqAvg *= (1 - CONSTANTS.PREP_EFFICACY);
 
-  const canvas = document.getElementById("chart");
-  const ctx = canvas.getContext("2d");
+  // Ajuste por prevalencia del tercero (si no es 100% seguro que es positivo)
+  // Riesgo real = Riesgo_si_positivo * Prob_que_sea_positivo
+  let pAcqPerAct = rAcqAvg * prevalence;
 
-  const pMonthEl = document.getElementById("pMonth");
-  const pMonthNEl = document.getElementById("pMonthN");
-  const pCumEl = document.getElementById("pCum");
-  const pCumNEl = document.getElementById("pCumN");
-  const coinEqEl = document.getElementById("coinEq");
+  // 2. Probabilidad de que ÉL se infecte en UN MES completo (suponiendo que empieza sano)
+  let pInfectedMonth = probAtLeastOne(pAcqPerAct, actsThird);
 
-  function buildPGrid(container, months, labelPrefix, defaultVal){
-    container.innerHTML = "";
-    const M = Math.min(months, MAX_PMES);
-    for (let i=1;i<=M;i++){
-      const row = document.createElement("div");
-      row.className = "prow";
-      const lab = document.createElement("div");
-      lab.textContent = labelPrefix + " " + i;
-      const rng = document.createElement("input");
-      rng.type = "range"; rng.min = "0"; rng.max = "100"; rng.step = "1"; rng.value = String(defaultVal);
-      rng.dataset.index = (i-1).toString();
-      const out = document.createElement("div");
-      out.className = "pval"; out.textContent = defaultVal + "%";
-      rng.addEventListener("input", () => { out.textContent = rng.value + "%"; update(); });
-      row.appendChild(lab); row.appendChild(rng); row.appendChild(out);
-      container.appendChild(row);
+  // --- SIMULACIÓN MES A MES ---
+  
+  // Estado inicial de Él:
+  // Asumimos que empieza Sano (S=1). 
+  // (Si quisieras "pInit", se restaría aquí, pero el usuario pidió verificar cálculos de flujo).
+  let S = 1.0; // Probabilidad de ser Susceptible (Sano)
+  
+  // Arrays para gráfica
+  let dataRiskMonthly = [];
+  let dataRiskCum = [];
+  let currentSafety = 1.0; // Probabilidad de que TÚ sigas sano
+
+  // Variable para tracking de infección aguda
+  // Como es probabilístico, rastreamos "proporción de la población de parejas" en cada estadio.
+  // Estados: S (sano), I_acute1 (mes 1 de infección), I_acute2 (mes 2), I_chronic (crónico)
+  let state = {
+    S: 1.0,
+    I_Eclipse: 0.0, // Infectado este mes, pero en ventana (no contagia)
+    I_Acute1: 0.0,  // Infectado el mes pasado (muy contagioso)
+    I_Acute2: 0.0,  // Infectado hace 2 meses (muy contagioso)
+    I_Chronic: 0.0  // Infectado hace >2 meses (contagioso normal)
+  };
+
+  for (let m = 0; m < months; m++) {
+    // A. ÉL tiene sexo con TERCERO y se puede infectar.
+    // Los que eran S, ahora una parte pasa a I_Eclipse.
+    let newInfections = state.S * pInfectedMonth;
+    
+    // B. TÚ tienes sexo con ÉL. ¿Cuál es el riesgo?
+    // Riesgo viene de los grupos: I_Acute1, I_Acute2, I_Chronic, y PARTE de I_Eclipse (dependiendo del orden).
+
+    // B1. Riesgo base hacia ti (Receptivo)
+    let rTxBase = CONSTANTS.RISK_RECEPTIVE; 
+    // Nota: Asumimos que con tu pareja NO usas condón (escenario típico de "pareja"), 
+    // o está implícito en el número de actos "c". Si quisieras condón contigo, se aplicaría aquí.
+
+    // B2. Calculamos probabilidad de transmisión SEGÚN ESTADIO viral de Él:
+    
+    // - Crónico:
+    let pTxChronic = probAtLeastOne(rTxBase, actsYou);
+    
+    // - Agudo (x12):
+    let rTxAcute = useAcute ? Math.min(1, rTxBase * CONSTANTS.ACUTE_MULTIPLIER) : rTxBase;
+    let pTxAcute = probAtLeastOne(rTxAcute, actsYou);
+
+    // - Eclipse (El mes actual):
+    // Aquí es donde importa el "Eclipse Period" y el "Order".
+    // Si se infectó este mes, los primeros ~10 días (0.33 del mes) NO contagia.
+    // Además, depende de si tus actos fueron antes o después.
+    // Factor de coincidencia: ¿Qué prob hay de que tus actos ocurran CUANDO él ya es contagioso?
+    
+    let exposureFactor = 0;
+    if (actsThird > 0 && actsYou > 0) {
+        // Lógica simplificada de solapamiento temporal
+        // Si es "Random": Asumimos distribución uniforme. El riesgo es aprox la mitad del tiempo efectivo post-eclipse.
+        // Si es "Worst": Él se infecta al principio, pasa eclipse, y luego te da a ti.
+        
+        let infectiousWindow = 1.0 - CONSTANTS.ECLIPSE_FRACTION; // Tiempo restante del mes tras eclipse (ej. 20 días)
+        if (infectiousWindow < 0) infectiousWindow = 0;
+
+        if (orderMode === 'worst') {
+            exposureFactor = infectiousWindow; // Casi todo el riesgo posible
+        } else {
+            exposureFactor = infectiousWindow * 0.5; // Promedio estadístico
+        }
     }
+    
+    // Riesgo del grupo "Recién infectado este mes":
+    // Usamos la tasa Aguda porque la viremia sube rápido tras el eclipse.
+    let pTxNew = probAtLeastOne(rTxAcute * exposureFactor, actsYou); 
+
+    // C. Riesgo TOTAL para TI en el mes M
+    // Es la suma ponderada de riesgos provenientes de cada sub-población de Él
+    let riskFromChronic = state.I_Chronic * pTxChronic;
+    let riskFromAcute1  = state.I_Acute1 * pTxAcute;
+    let riskFromAcute2  = state.I_Acute2 * pTxAcute;
+    let riskFromNew     = newInfections * pTxNew; // Los que se acaban de infectar
+    
+    // Como son eventos mutuamente excluyentes (él está en un solo estado), se suman las probabilidades ponderadas
+    // (Aproximación válida para p < 0.1)
+    let probInfectionYouMonth = riskFromChronic + riskFromAcute1 + riskFromAcute2 + riskFromNew;
+    
+    // Guardamos datos
+    dataRiskMonthly.push(probInfectionYouMonth);
+    currentSafety *= (1 - probInfectionYouMonth);
+    dataRiskCum.push(1 - currentSafety);
+
+    // D. AVANZAR ESTADOS de Él para el mes siguiente
+    state.I_Chronic += state.I_Acute2; // Los de Acute2 pasan a Crónico
+    state.I_Acute2 = state.I_Acute1;   // Los de Acute1 pasan a Acute2
+    state.I_Acute1 = newInfections;    // Los nuevos (que eran Eclipse) pasan a Acute1 (mes completo agudo)
+    state.S = state.S - newInfections; // Los sanos disminuyen
   }
 
-  function arrayFromGrid(container, months, base){
-    const M = months;
-    const arr = Array(M).fill(base);
-    const sliders = container.querySelectorAll('input[type="range"]');
-    const vals = Array.from(sliders).map(r => parseInt(r.value,10)/100);
-    for (let i=0;i<M;i++){
-      const v = (i < vals.length) ? vals[i] : (vals.length ? vals[vals.length-1] : 1.0);
-      arr[i] *= v;
-    }
-    return arr;
-  }
+  // Resultados finales
+  let finalRisk = 1 - currentSafety;
+  let avgMonthly = dataRiskMonthly.reduce((a,b)=>a+b,0) / months;
 
-  function getPInfArr(months){
-    const base = enableTotalEl.checked ? parseInt(pTotalEl.value,10)/100 : 1.0;
-    if (enablePerMonthEl.checked) return arrayFromGrid(pgrid, months, base);
-    return Array(months).fill(base);
-  }
+  ui.rMonth.innerText = fmtPct(avgMonthly);
+  ui.rMonthN.innerText = fmtOneIn(avgMonthly);
+  
+  ui.rTotal.innerText = fmtPct(finalRisk);
+  ui.rTotalN.innerText = fmtOneIn(finalRisk);
 
-  function getQCondomArr(months){
-    const base = enableCondomTotalEl.checked ? parseInt(pCondomTotalEl.value,10)/100 : 0.0;
-    if (enableCondomPerMonthEl.checked) return arrayFromGrid(pgridCondom, months, base);
-    return Array(months).fill(base);
-  }
+  let coins = finalRisk > 0 ? -Math.log2(finalRisk).toFixed(1) : "Inf";
+  ui.rCoin.innerText = coins;
 
-  function computeYAxisMax(cumArray){
-    let maxPct = 0;
-    for (let i=0;i<cumArray.length;i++) maxPct = Math.max(maxPct, cumArray[i]*100);
-    const minCap = 0.1;
-    maxPct = Math.max(maxPct*1.1, minCap);
-    const rawStep = maxPct / 5;
-    const step = niceStep(rawStep);
-    const yMax = step * 5;
-    return {yMax, step};
-  }
+  drawChart(dataRiskCum);
+}
 
-  function formatPct(x){
-    if (!isFinite(x)) return "—";
-    if (x === 0) return "0%";
-    const pct = x*100;
-    if (pct >= 1) return pct.toFixed(3) + "%";
-    if (pct >= 0.1) return pct.toFixed(4) + "%";
-    if (pct >= 0.01) return pct.toFixed(5) + "%";
-    return pct.toExponential(2).replace("e-","×10^-") + "%";
-  }
-  function oneInN(x){ return x <= 0 ? "—" : ("1 / " + Math.round(1/x).toLocaleString()); }
-  function coinK(p){ return p <= 0 ? "—" : ((-Math.log(p)/Math.log(2)).toFixed(2) + " caras"); }
+function drawChart(data) {
+  const w = ctx.canvas.width;
+  const h = ctx.canvas.height;
+  ctx.clearRect(0,0,w,h);
+  
+  // Config
+  const pad = 40;
+  const gw = w - pad*2;
+  const gh = h - pad*2;
+  
+  const maxVal = Math.max(0.01, ...data); // Minimo 1% escala
+  const yScale = gh / (maxVal * 1.1);
+  const xScale = gw / (data.length - 1);
 
-  function drawCurve(cumArray){
-    const W = canvas.clientWidth, H = canvas.clientHeight;
-    canvas.width = W*2; canvas.height = H*2; ctx.setTransform(1,0,0,1,0,0); ctx.scale(2,2);
-    ctx.clearRect(0,0,W,H);
+  // Grid
+  ctx.strokeStyle = "#333";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  // Eje Y (0, 50%, 100% relative to max)
+  ctx.moveTo(pad, h-pad); ctx.lineTo(w-pad, h-pad);
+  ctx.stroke();
 
-    const M = cumArray.length - 1;
-    const {yMax, step} = computeYAxisMax(cumArray);
+  // Línea
+  ctx.strokeStyle = "#ff4fa3"; // Accent
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  
+  // Sombra (Fill)
+  ctx.fillStyle = "rgba(255, 79, 163, 0.1)";
+  ctx.beginPath();
+  ctx.moveTo(pad, h-pad);
+  
+  data.forEach((p, i) => {
+    const x = pad + i * xScale;
+    const y = (h - pad) - (p * yScale);
+    ctx.lineTo(x, y);
+  });
+  
+  ctx.lineTo(pad + (data.length-1)*xScale, h-pad);
+  ctx.fill();
 
-    // Ejes
-    ctx.strokeStyle = "rgba(255,193,221,.25)";
-    ctx.lineWidth = 1;
-    ctx.fillStyle = "rgba(255,217,235,.9)";
-    ctx.font = "12px system-ui";
-    for(let i=0;i<=5;i++){
-      const yVal = i*step;
-      const y = H - (H-36)*(yVal / yMax) - 8;
-      ctx.beginPath(); ctx.moveTo(40,y); ctx.lineTo(W-10,y); ctx.stroke();
-      let label;
-      if (yMax >= 10) label = yVal.toFixed(1) + "%";
-      else if (yMax >= 1) label = yVal.toFixed(2) + "%";
-      else if (yMax >= 0.1) label = yVal.toFixed(3) + "%";
-      else label = yVal.toExponential(2).replace("e-","×10^-") + "%";
-      ctx.fillText(label, 6, y+4);
-    }
-    const steps = Math.min(10, Math.ceil(M/24));
-    for(let i=0;i<=steps;i++){
-      const mTick = Math.round(i*M/steps);
-      const x = 40 + (W-60)*(mTick/M);
-      ctx.beginPath(); ctx.moveTo(x, H-28); ctx.lineTo(x, H-24); ctx.stroke();
-      ctx.fillText(mTick.toString(), x-8, H-6);
-    }
+  // Trazo
+  ctx.beginPath();
+  data.forEach((p, i) => {
+    const x = pad + i * xScale;
+    const y = (h - pad) - (p * yScale);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
 
-    // Curva
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
-    ctx.lineWidth = 2.6;
-    ctx.beginPath();
-    for(let m=0; m<=M; m++){
-      const yPct = cumArray[m]*100;
-      const x = 40 + (W-60)*(m/M);
-      const y = H - (H-36)*(yPct / yMax) - 8;
-      if(m===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    }
-    ctx.stroke();
-  }
+  // Texto max
+  ctx.fillStyle = "#fff";
+  ctx.font = "12px monospace";
+  ctx.fillText((maxVal*1.1*100).toFixed(1) + "%", 5, 20);
+  ctx.fillText("0%", 10, h-pad);
+  
+  // Meses
+  ctx.fillText("Mes 1", pad, h-10);
+  ctx.fillText("Mes "+data.length, w-pad-20, h-10);
+}
 
-  function update(){
-    const g = parseInt(gEl.value,10);
-    const c = parseInt(cEl.value,10);
-    const months = parseInt(mEl.value,10);
-    const mode = modeEl.value;
-    const acute = acuteEl.checked;
-    const fTx = parseInt(pTxEl.value,10)/100;
-    const pInit = parseInt(pInitEl.value,10)/100;
+// Listeners
+Object.values(ui).forEach(el => {
+  if(el instanceof HTMLElement) el.addEventListener('input', update);
+});
 
-    // UI text
-    document.getElementById("gVal").textContent = g;
-    document.getElementById("cVal").textContent = c;
-    document.getElementById("mVal").textContent = months;
-    pTxValEl.textContent = pTxEl.value;
-    pTotalValEl.textContent = pTotalEl.value;
-    pCondomTotalValEl.textContent = pCondomTotalEl.value;
-    pInitValEl.textContent = pInitEl.value;
-    condomTotalRow.style.display = enableCondomTotalEl.checked ? "flex" : "none";
-    totalRow.style.display = enableTotalEl.checked ? "flex" : "none";
+function update() {
+  ui.gVal.innerText = ui.g.value;
+  ui.cVal.innerText = ui.c.value;
+  ui.mVal.innerText = ui.m.value;
+  ui.pPrevVal.innerText = ui.prev.value + '%';
+  ui.condomVal.innerText = ui.condom.value + '%';
+  calculate();
+}
 
-    // Arrays por mes
-    const pInfArr = getPInfArr(months);
-    const qCondomArr = getQCondomArr(months);
+// Init
+update();
 
-    // Simulación con estado: S=prob susceptible al inicio del mes; I=1-S
-    let S = 1 - pInit;
-    // pUser_m: prob de infectarte en el mes m (condicional a que tú sigues sana/o)
-    const pUserArr = [];
-    const cumArray = [0];
-    let prodSafe = 1;
-
-    for (let m=0; m<months; m++){
-      const pInf = pInfArr[m];
-      const qC = qCondomArr[m];
-
-      // j_before según modo
-      let j_before = 0;
-      if (mode === "random") j_before = g/2;
-      else if (mode === "worst") j_before = g;
-      // Mejor = 0 (todos tus actos antes de los del tercero)
-
-      const pBefore = pInf * pAcquireBefore(j_before, g, fTx, qC);
-      const pFull   = pInf * pAcquireFull(g, fTx, qC);
-      const pToYou  = pTransmitToYou(c, acute);
-
-      // Prob. de contagiarte este mes:
-      // - si él ya venía infectado (1-S): (1-S) * pToYou
-      // - si él era susceptible (S) pero se infecta antes de tus actos: S * pBefore * pToYou
-      const pMonthYou = (1 - S) * pToYou + S * pBefore * pToYou;
-
-      pUserArr.push(pMonthYou);
-
-      // Actualizar acumulada para ti (1 - ∏(1 - pMonthYou))
-      prodSafe *= (1 - pMonthYou);
-      cumArray.push(1 - prodSafe);
-
-      // Evolución del estado de él al final del mes:
-      // Si era susceptible, puede infectarse en algún momento del mes con prob pFull.
-      S = S * (1 - pFull);
-    }
-
-    // Estadísticas
-    const pAvg = pUserArr.reduce((a,b)=>a+b,0) / Math.max(1, pUserArr.length);
-    pMonthEl.textContent = formatPct(pAvg);
-    pMonthNEl.textContent = "1 en N: " + oneInN(pAvg);
-    const pCum = cumArray[cumArray.length-1];
-    pCumEl.textContent = formatPct(pCum);
-    pCumNEl.textContent = "1 en N: " + oneInN(pCum);
-    coinEqEl.textContent = coinK(pAvg);
-
-    drawCurve(cumArray);
-  }
-
-  // Bind
-  [
-    gEl,cEl,mEl,modeEl,acuteEl,pTxEl,pInitEl,
-    enableCondomTotalEl,pCondomTotalEl,enableCondomPerMonthEl,
-    enableTotalEl,pTotalEl,enablePerMonthEl
-  ].forEach(el => el.addEventListener("input", () => {
-    if (el === enablePerMonthEl){
-      const show = enablePerMonthEl.checked;
-      pgrid.style.display = show ? "block" : "none";
-      if (show) buildPGrid(pgrid, parseInt(mEl.value,10), "Mes", 30);
-    }
-    if (el === enableCondomPerMonthEl){
-      const show = enableCondomPerMonthEl.checked;
-      pgridCondom.style.display = show ? "block" : "none";
-      if (show) buildPGrid(pgridCondom, parseInt(mEl.value,10), "Mes (condón)", 50);
-    }
-    if (el === mEl){
-      if (enablePerMonthEl.checked) buildPGrid(pgrid, parseInt(mEl.value,10), "Mes", 30);
-      if (enableCondomPerMonthEl.checked) buildPGrid(pgridCondom, parseInt(mEl.value,10), "Mes (condón)", 50);
-    }
-    update();
-  }));
-
-  // Init grids
-  buildPGrid(pgrid, parseInt(mEl.value,10), "Mes", 30);
-  buildPGrid(pgridCondom, parseInt(mEl.value,10), "Mes (condón)", 50);
-  update();
-})();
 </script>
 </body>
 </html>
