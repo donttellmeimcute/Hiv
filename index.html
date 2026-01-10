@@ -3,153 +3,164 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Simulador de Riesgo Encadenado (CDC Calibrado)</title>
+<title>Simulador de Riesgo Encadenado (CDC 2025 Core)</title>
 <style>
   :root {
-    --bg: #0f0f13;
-    --panel: #1b1b22;
-    --text: #e0e0e0;
-    --accent: #ff4fa3;       /* Rosa neón */
-    --accent-dim: #942b5d;
-    --success: #00e676;
-    --warn: #ffea00;
+    --bg: #0b0b0e;
+    --panel: #15151a;
+    --text: #c0c0c0;
+    --accent: #ff2a6d;       /* Rojo/Rosa Intenso para alerta */
+    --accent-dim: #5c182e;
+    --safe: #05d5fa;
+    --warn: #ffcc00;
   }
-  * { box-sizing: border-box; }
-  body { margin:0; padding:20px; background:var(--bg); font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:var(--text); }
-  .wrap { max-width: 1200px; margin:0 auto; }
-  h1 { color: #fff; font-weight: 300; margin-bottom: 5px; }
-  h1 strong { color: var(--accent); font-weight: 800; }
-  .subtitle { font-size: 0.9em; opacity: 0.7; margin-bottom: 25px; display: block; }
+  * { box-sizing: border-box; outline: none; }
+  body { margin:0; padding:20px; background:var(--bg); font-family: 'Inter', system-ui, sans-serif; color:var(--text); line-height: 1.5; }
+  .wrap { max-width: 1100px; margin:0 auto; }
   
-  .grid { display:grid; grid-template-columns: 380px 1fr; gap:20px; }
+  h1 { color: #fff; font-weight: 300; margin: 0 0 5px 0; font-size: 1.8rem; letter-spacing: -0.5px; }
+  h1 strong { color: var(--accent); font-weight: 800; }
+  .subtitle { font-size: 0.85em; color: #666; margin-bottom: 30px; display: block; border-left: 2px solid var(--accent); padding-left: 10px; }
+  
+  .grid { display:grid; grid-template-columns: 400px 1fr; gap:30px; }
   @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
 
-  .card { background:var(--panel); border:1px solid #333; border-radius:12px; padding:20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  .card { background:var(--panel); border:1px solid #2a2a35; border-radius:16px; padding:25px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
   
   /* Controles */
-  .control-group { margin-bottom: 18px; padding-bottom: 15px; border-bottom: 1px solid #2a2a35; }
-  .control-group:last-child { border:0; }
-  label { font-size: 13px; color:#aaa; display:block; margin-bottom:8px; }
-  .row { display:flex; align-items:center; gap:10px; justify-content: space-between; }
-  input[type="range"] { flex:1; accent-color: var(--accent); cursor: pointer; }
-  .val { font-family: monospace; font-size: 14px; color: var(--accent); font-weight: bold; min-width: 50px; text-align: right; }
+  .section-title { font-size: 0.75rem; text-transform: uppercase; color: var(--safe); letter-spacing: 1px; margin-bottom: 15px; font-weight: 700; border-bottom: 1px solid #2a2a35; padding-bottom: 5px; }
+  .control-group { margin-bottom: 20px; }
   
-  select { background: #252530; border:1px solid #444; color:#fff; padding:6px; border-radius:6px; width:100%; }
+  label { font-size: 13px; color:#ddd; display:flex; justify-content: space-between; margin-bottom:8px; font-weight: 500; }
+  .badge { background:#2a2a35; padding:2px 6px; border-radius:4px; font-size:10px; color:#888; border:1px solid #333; }
+  
+  input[type="range"] { 
+    -webkit-appearance: none; width: 100%; height: 6px; background: #333; border-radius: 3px; cursor: pointer; 
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 18px; height: 18px; background: var(--accent); border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 10px var(--accent);
+  }
+  
+  .val { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #fff; font-weight: bold; }
+  .note { font-size: 11px; color: #555; margin-top: 6px; line-height: 1.3; }
+
+  select { background: #222; border:1px solid #444; color:#fff; padding:8px; border-radius:6px; width:100%; font-size: 13px; }
 
   /* Stats */
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
-  .stat-box { background: #23232d; padding: 15px; border-radius: 8px; text-align: center; border:1px solid #333; }
-  .stat-box h3 { margin:0 0 5px; font-size:11px; text-transform:uppercase; letter-spacing:1px; opacity:0.6; }
-  .stat-box .num { font-size: 24px; font-weight: 700; color: #fff; }
-  .stat-box .sub { font-size: 11px; opacity: 0.5; margin-top: 4px; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
+  .stat-box { background: rgba(255, 42, 109, 0.05); border:1px solid var(--accent-dim); padding: 15px; border-radius: 10px; text-align: center; }
+  .stat-box.safe { background: rgba(5, 213, 250, 0.05); border-color: #0d4652; }
+  
+  .stat-box h3 { margin:0 0 5px; font-size:10px; text-transform:uppercase; letter-spacing:1px; opacity:0.7; }
+  .stat-box .num { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -1px; }
+  .stat-box .sub { font-size: 11px; opacity: 0.6; margin-top: 2px; }
 
   /* Canvas */
-  canvas { width:100%; height: 400px; background: #16161d; border-radius: 8px; border:1px solid #333; }
+  .chart-container { position: relative; height: 350px; width: 100%; }
+  canvas { width:100%; height: 100%; background: #0f0f12; border-radius: 12px; border:1px solid #333; }
   
-  .note { font-size: 11px; opacity: 0.5; margin-top: 10px; line-height: 1.4; }
-  .badge { display:inline-block; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; background:#333; color:#aaa; margin-left:5px; vertical-align: middle;}
+  .legend { display: flex; gap: 15px; margin-top: 15px; font-size: 11px; color: #777; justify-content: center; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+
+  .warn-box { margin-top: 20px; background: #221a00; border: 1px solid #554400; color: #ccaa00; padding: 12px; font-size: 12px; border-radius: 8px; display: flex; gap: 10px; align-items: flex-start; }
 </style>
 </head>
 <body>
 
 <div class="wrap">
-  <h1>Riesgo <strong>Encadenado</strong> (Calibrado CDC)</h1>
-  <span class="subtitle">Modelo de estado mensual con periodo de eclipse viral y probabilidades reales.</span>
+  <h1>Simulador de Riesgo <strong>Encadenado</strong></h1>
+  <span class="subtitle">Modelo Estocástico de Transmisión Viral | Calibrado CDC/Wawer (2024 data)</span>
 
   <div class="grid">
     <div class="card">
       
+      <div class="section-title">1. Comportamiento de TERCEROS</div>
       <div class="control-group">
-        <label>Actos de ÉL con TERCEROS (al mes) <span class="badge">Insertivo (él activo)</span></label>
-        <div class="row">
-          <input type="range" id="g" min="0" max="30" value="4">
-          <span class="val" id="gVal">4</span>
-        </div>
+        <label>
+          <span>Prevalencia en su entorno (Probabilidad VIH+)</span>
+          <span class="val" id="prevDisplay">15%</span>
+        </label>
+        <input type="range" id="prevalence" min="0" max="50" value="15" step="1">
+        <div class="note">Apps de citas/Chemsex: 15-25% | Población general: <1%.</div>
+      </div>
+
+      <div class="section-title">2. Comportamiento de TU PAREJA</div>
+      <div class="control-group">
+        <label>
+          <span>Actos de ÉL con Terceros (Mes)</span>
+          <span class="val" id="actsThirdDisplay">4</span>
+        </label>
+        <input type="range" id="actsThird" min="0" max="30" value="4">
+        <div class="note">Rol: Insertivo (Él penetra) <span class="badge">Riesgo 0.11%</span></div>
       </div>
 
       <div class="control-group">
-        <label>Actos de ÉL CONTIGO (al mes) <span class="badge">Receptivo (tú pasivo)</span></label>
-        <div class="row">
-          <input type="range" id="c" min="0" max="30" value="2">
-          <span class="val" id="cVal">2</span>
+        <label>
+          <span>Protección de ÉL con Terceros</span>
+          <span class="val" id="protectionDisplay">Condón Típico (80%)</span>
+        </label>
+        <input type="range" id="protectionLevel" min="0" max="2" value="1" step="1">
+        <div class="note" style="display:flex; justify-content:space-between; margin-top:5px;">
+          <span>Nada</span><span>Condón</span><span>PrEP+Condón</span>
         </div>
+      </div>
+
+      <div class="section-title">3. TU EXPOSICIÓN</div>
+      <div class="control-group">
+        <label>
+          <span>Actos de ÉL CONTIGO (Mes)</span>
+          <span class="val" id="actsYouDisplay">4</span>
+        </label>
+        <input type="range" id="actsYou" min="0" max="30" value="4">
+        <div class="note">Rol: Receptivo (Tú pasivo) <span class="badge" style="color:#ff2a6d; border-color:#ff2a6d">Riesgo Alto 1.38%</span></div>
       </div>
 
       <div class="control-group">
-        <label>Duración simulación (Meses)</label>
-        <div class="row">
-          <input type="range" id="months" min="1" max="60" value="12">
-          <span class="val" id="mVal">12</span>
-        </div>
+        <label>Duración Simulación (Meses)</label>
+        <input type="range" id="months" min="1" max="24" value="12">
+        <div class="note" style="text-align:right" id="monthsDisplay">12 meses</div>
       </div>
 
-      <div class="control-group">
-        <label>Probabilidad de que el Tercero sea VIH+ (Prevalencia)</label>
-        <div class="row">
-          <input type="range" id="pPrevalence" min="0" max="100" value="15" step="1">
-          <span class="val" id="pPrevVal">15%</span>
-        </div>
-        <div class="note">Si no conoces su estado. En apps/zonas de riesgo puede ser 10-20%.</div>
-      </div>
-
-      <div class="control-group">
-        <label>Uso de Condón (Tercero) - Eficacia: 85%</label>
-        <div class="row">
-          <input type="range" id="condomUsage" min="0" max="100" value="50" step="5">
-          <span class="val" id="condomVal">50%</span>
-        </div>
-        <label style="margin-top:10px">¿Tu pareja toma PrEP? (Eficacia 99%)</label>
-        <select id="prep">
-          <option value="0">No usa PrEP</option>
-          <option value="1">Sí usa PrEP (Diario/A demanda)</option>
-        </select>
-      </div>
-
-      <div class="control-group">
-        <label>Dinámica de la Infección</label>
-        <div class="row" style="margin-bottom:8px">
-          <span style="font-size:12px; opacity:0.8">Orden de actos:</span>
-          <select id="order" style="width:140px">
-            <option value="random">Aleatorio</option>
-            <option value="worst">Peor (Él primero)</option>
-          </select>
-        </div>
-        <div class="row">
-           <span style="font-size:12px; opacity:0.8">Fase Aguda (×12 viralidad):</span>
-           <input type="checkbox" id="acuteRisk" checked>
-        </div>
-        <div class="note">Si él se infecta, su carga viral se dispara los primeros 2 meses, aumentando el riesgo de pasártelo.</div>
-      </div>
-
-      <div class="stats">
-        <div class="stat-box">
-          <h3>Prob. Mensual</h3>
-          <div class="num" id="resMonth">0%</div>
-          <div class="sub" id="resMonthN">-</div>
+      <div class="stats-grid">
+        <div class="stat-box safe">
+          <h3>Prob. Mensual Promedio</h3>
+          <div class="num" id="resMonthly">0%</div>
+          <div class="sub" id="resMonthlyTxt">-</div>
         </div>
         <div class="stat-box">
-          <h3>Prob. Acumulada</h3>
+          <h3>Riesgo Acumulado</h3>
           <div class="num" style="color:var(--accent)" id="resTotal">0%</div>
-          <div class="sub" id="resTotalN">-</div>
-        </div>
-        <div class="stat-box">
-          <h3>Equiv. Moneda</h3>
-          <div class="num" id="resCoin">-</div>
-          <div class="sub">Caras seguidas</div>
+          <div class="sub" id="resTotalTxt">-</div>
         </div>
       </div>
 
     </div>
 
     <div class="card">
-      <canvas id="mainChart"></canvas>
-      <div class="note" style="margin-top:15px">
-        <strong>Base científica (CDC):</strong>
-        <ul>
-          <li>Riesgo Insertivo (Él con 3º): ~0.11% por acto (11/10,000).</li>
-          <li>Riesgo Receptivo (Tú con Él): ~1.38% por acto (138/10,000).</li>
-          <li>Periodo de Eclipse: Si él se infecta, tarda ~10 días en ser contagioso.</li>
-          <li>Fase Aguda: Multiplicador ×11.9 durante los primeros 2 meses post-eclipse.</li>
+      <div class="chart-container">
+        <canvas id="riskChart"></canvas>
+      </div>
+      
+      <div class="legend">
+        <span><span class="dot" style="background:#ff2a6d"></span>Riesgo Acumulado (Tú)</span>
+        <span><span class="dot" style="background:#444"></span>Prob. Él se infecte (Acum)</span>
+      </div>
+
+      <div class="warn-box">
+        <div style="font-size:20px">⚠</div>
+        <div>
+          <strong>El peligro de la Fase Aguda:</strong>
+          Si tu pareja se infecta, durante los primeros 2 meses su carga viral se dispara (hasta 10-20 millones de copias). En este simulador, si él contrae el virus, el riesgo para ti se multiplica por <strong>26x</strong> en el primer mes de viremia.
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:20px; border-top:1px solid #333; padding-top:10px;">
+        <strong>Fuentes de Calibración:</strong>
+        <ul style="padding-left:15px; margin:5px 0;">
+          <li><strong>CDC (2023):</strong> Risk per Act estimates (138/10k Receptivo, 11/10k Insertivo).</li>
+          <li><strong>Wawer et al. / Hollingsworth:</strong> Infectividad en infección aguda (Ratio x26 en pico).</li>
+          <li><strong>Cochrane / Smith (2015):</strong> Eficacia preservativo MSM (ajustado a 80% por fallos de uso).</li>
+          <li><strong>Periodo Eclipse:</strong> 10-14 días sin detectabilidad ni transmisión.</li>
         </ul>
       </div>
     </div>
@@ -158,280 +169,254 @@
 
 <script>
 /**
- * FUENTES DE DATOS:
- * 1. CDC (Centers for Disease Control and Prevention), "HIV Risk Behaviors", 2023 update.
- * - Receptivo Anal: 1.38%
- * - Insertivo Anal: 0.11%
- * 2. Hollingsworth TD et al. (2008) / Wawer et al. (2005):
- * - Infectividad fase aguda vs crónica: 10x - 26x. Usaremos media conservadora ~12x.
- * 3. Eficacia Condón:
- * - Cochrane Review: ~80-90% reducción riesgo. Usamos 0.85 como media MSM.
- * 4. Eficacia PrEP:
- * - CDC/iPrEx: >99% reducción riesgo de adquisición.
+ * MOTOR DE CÁLCULO CIENTÍFICO
+ * Basado en probabilidades encadenadas y estados de Markov.
  */
 
+// --- CONSTANTES MÉDICAS (CDC / LITERATURA) ---
 const CONSTANTS = {
-  RISK_INSERTIVE: 0.0011, // Él adquiriendo del tercero
-  RISK_RECEPTIVE: 0.0138, // Él transmitiendo a ti
-  ACUTE_MULTIPLIER: 11.9, // Multiplicador de riesgo en fase aguda
-  CONDOM_EFFICACY: 0.85,  
-  PREP_EFFICACY: 0.99,
-  ECLIPSE_FRACTION: 0.33  // ~10 días de 30. Fracción del mes donde NO es contagioso aún si se infecta ese mes.
+  RISK_INSERTIVE: 0.0011, // 0.11% por acto (Él adquiriendo)
+  RISK_RECEPTIVE: 0.0138, // 1.38% por acto (Tú recibiendo)
+  
+  // Multiplicadores de Infectividad según fase viral (Hollingsworth 2008)
+  ACUTE_PHASE_1_MULTIPLIER: 26.0, // Primer mes de viremia (Pico extremo)
+  ACUTE_PHASE_2_MULTIPLIER: 7.0,  // Segundo mes (Bajando pero alto)
+  CHRONIC_MULTIPLIER: 1.0,        // Fase crónica (Estándar)
+  
+  // Eficacias de protección
+  CONDOM_EFFICACY_REAL: 0.80, // Uso típico en sexo anal (roturas, puesta tardía)
+  PREP_EFFICACY: 0.99,        // Alta adherencia
+  
+  // Ventana
+  ECLIPSE_DAYS: 12 // Días promedio hasta que es infeccioso
 };
 
+// Referencias UI
 const ui = {
-  g: document.getElementById('g'),
-  c: document.getElementById('c'),
-  m: document.getElementById('months'),
-  prev: document.getElementById('pPrevalence'),
-  condom: document.getElementById('condomUsage'),
-  prep: document.getElementById('prep'),
-  order: document.getElementById('order'),
-  acute: document.getElementById('acuteRisk'),
-  // labels
-  gVal: document.getElementById('gVal'),
-  cVal: document.getElementById('cVal'),
-  mVal: document.getElementById('mVal'),
-  pPrevVal: document.getElementById('pPrevVal'),
-  condomVal: document.getElementById('condomVal'),
-  // results
-  rMonth: document.getElementById('resMonth'),
-  rMonthN: document.getElementById('resMonthN'),
-  rTotal: document.getElementById('resTotal'),
-  rTotalN: document.getElementById('resTotalN'),
-  rCoin: document.getElementById('resCoin'),
+  prev: document.getElementById('prevalence'),
+  actsThird: document.getElementById('actsThird'),
+  prot: document.getElementById('protectionLevel'),
+  actsYou: document.getElementById('actsYou'),
+  months: document.getElementById('months'),
+  // Displays
+  prevD: document.getElementById('prevDisplay'),
+  actsTD: document.getElementById('actsThirdDisplay'),
+  protD: document.getElementById('protectionDisplay'),
+  actsYD: document.getElementById('actsYouDisplay'),
+  monthsD: document.getElementById('monthsDisplay'),
+  // Results
+  resM: document.getElementById('resMonthly'),
+  resMT: document.getElementById('resMonthlyTxt'),
+  resT: document.getElementById('resTotal'),
+  resTT: document.getElementById('resTotalTxt')
 };
 
-const ctx = document.getElementById('mainChart').getContext('2d');
-let chartObj = null;
+const ctx = document.getElementById('riskChart').getContext('2d');
 
-// Helpers matemáticos
-const probAtLeastOne = (p, n) => 1 - Math.pow(1 - p, n);
-const applyReduction = (baseP, reduction) => baseP * (1 - reduction);
+// Utilidad Estadística: Probabilidad de que ocurra al menos 1 evento en N intentos
+// P = 1 - (1 - p)^n
+const probEvent = (p, n) => 1 - Math.pow(1 - p, n);
 
 // Formateo
-const fmtPct = (n) => (n*100).toFixed(n < 0.001 ? 4 : 2) + '%';
-const fmtOneIn = (n) => n > 0 ? '1 en ' + Math.round(1/n).toLocaleString() : '-';
+const fmtPct = (n) => (n*100).toFixed(2) + '%';
+const fmtOneIn = (n) => {
+  if(n <= 0) return "Riesgo 0";
+  let x = Math.round(1/n);
+  return x > 100000 ? "< 1 en 100k" : "1 en " + x.toLocaleString();
+};
 
 function calculate() {
-  const actsThird = parseInt(ui.g.value);
-  const actsYou = parseInt(ui.c.value);
-  const months = parseInt(ui.m.value);
+  // 1. Obtener valores UI
   const prevalence = parseInt(ui.prev.value) / 100;
-  const condomFreq = parseInt(ui.condom.value) / 100;
-  const hasPrep = ui.prep.value === "1";
-  const useAcute = ui.acute.checked;
-  const orderMode = ui.order.value; // 'random' or 'worst'
-
-  // 1. Calcular riesgo de que ÉL adquiera VIH del TERCERO en UN acto
-  // Riesgo base insertivo
-  let rAcqBase = CONSTANTS.RISK_INSERTIVE;
+  const nActsThird = parseInt(ui.actsThird.value);
+  const nActsYou = parseInt(ui.actsYou.value);
+  const months = parseInt(ui.months.value);
+  const protLevel = parseInt(ui.prot.value); // 0=Nada, 1=Condom, 2=PrEP
   
-  // Ajuste por condón (promedio ponderado)
-  // P(transmision) = P(sin_condon)*Freq_sin + P(con_condon)*Freq_con
-  let rAcqNoCondom = rAcqBase; 
-  let rAcqCondom = rAcqBase * (1 - CONSTANTS.CONDOM_EFFICACY);
-  let rAcqAvg = (rAcqNoCondom * (1 - condomFreq)) + (rAcqCondom * condomFreq);
-
-  // Ajuste por PrEP (si él la toma)
-  if (hasPrep) rAcqAvg *= (1 - CONSTANTS.PREP_EFFICACY);
-
-  // Ajuste por prevalencia del tercero (si no es 100% seguro que es positivo)
-  // Riesgo real = Riesgo_si_positivo * Prob_que_sea_positivo
-  let pAcqPerAct = rAcqAvg * prevalence;
-
-  // 2. Probabilidad de que ÉL se infecte en UN MES completo (suponiendo que empieza sano)
-  let pInfectedMonth = probAtLeastOne(pAcqPerAct, actsThird);
-
-  // --- SIMULACIÓN MES A MES ---
+  // 2. Determinar Factor de Protección (Tercero -> Él)
+  let protectionFactor = 0;
+  let labelProt = "Sin protección";
   
-  // Estado inicial de Él:
-  // Asumimos que empieza Sano (S=1). 
-  // (Si quisieras "pInit", se restaría aquí, pero el usuario pidió verificar cálculos de flujo).
-  let S = 1.0; // Probabilidad de ser Susceptible (Sano)
+  if (protLevel === 1) { 
+    protectionFactor = CONSTANTS.CONDOM_EFFICACY_REAL; 
+    labelProt = "Condón (80% ef.)";
+  } else if (protLevel === 2) { 
+    // PrEP + Condón es estadísticamente casi 0, pero dejaremos un residual minúsculo
+    let p1 = CONSTANTS.CONDOM_EFFICACY_REAL;
+    let p2 = CONSTANTS.PREP_EFFICACY;
+    protectionFactor = 1 - ((1-p1) * (1-p2)); // ~99.8%
+    labelProt = "PrEP + Condón";
+  }
   
-  // Arrays para gráfica
-  let dataRiskMonthly = [];
-  let dataRiskCum = [];
-  let currentSafety = 1.0; // Probabilidad de que TÚ sigas sano
+  ui.protD.innerText = labelProt;
 
-  // Variable para tracking de infección aguda
-  // Como es probabilístico, rastreamos "proporción de la población de parejas" en cada estadio.
-  // Estados: S (sano), I_acute1 (mes 1 de infección), I_acute2 (mes 2), I_chronic (crónico)
-  let state = {
-    S: 1.0,
-    I_Eclipse: 0.0, // Infectado este mes, pero en ventana (no contagia)
-    I_Acute1: 0.0,  // Infectado el mes pasado (muy contagioso)
-    I_Acute2: 0.0,  // Infectado hace 2 meses (muy contagioso)
-    I_Chronic: 0.0  // Infectado hace >2 meses (contagioso normal)
-  };
+  // 3. Riesgo de Adquisición Mensual (Él se infecta)
+  // Riesgo por acto = Base * (1 - Protección) * Prob(Pareja sea Positiva)
+  // NOTA: Multiplicamos por la prevalencia porque cada acto es una "lotería" de si la persona es + o -
+  let riskAcqPerAct = CONSTANTS.RISK_INSERTIVE * (1 - protectionFactor) * prevalence;
+  let probHeGetsInfectedMonth = probEvent(riskAcqPerAct, nActsThird);
 
-  for (let m = 0; m < months; m++) {
-    // A. ÉL tiene sexo con TERCERO y se puede infectar.
-    // Los que eran S, ahora una parte pasa a I_Eclipse.
-    let newInfections = state.S * pInfectedMonth;
+  // --- SIMULACIÓN DE CADENA DE MARKOV ---
+  
+  // Estados de Él:
+  // S = Susceptible (Sano)
+  // E = Eclipse (Infectado este mes, ventana no infecciosa parcial)
+  // A1 = Aguda Mes 1 (Pico viral)
+  // A2 = Aguda Mes 2 (Descenso)
+  // C = Crónica
+  
+  let state = { S: 1.0, E: 0.0, A1: 0.0, A2: 0.0, C: 0.0 };
+  
+  let dataYouCumulative = []; // Riesgo acumulado para ti
+  let dataHeCumulative = [];  // Probabilidad acumulada de que él sea positivo
+  let currentSafetyYou = 1.0; // Probabilidad de que tú sigas sano
+  let cumulativeHeInfected = 0;
+
+  for (let m = 1; m <= months; m++) {
     
-    // B. TÚ tienes sexo con ÉL. ¿Cuál es el riesgo?
-    // Riesgo viene de los grupos: I_Acute1, I_Acute2, I_Chronic, y PARTE de I_Eclipse (dependiendo del orden).
-
-    // B1. Riesgo base hacia ti (Receptivo)
-    let rTxBase = CONSTANTS.RISK_RECEPTIVE; 
-    // Nota: Asumimos que con tu pareja NO usas condón (escenario típico de "pareja"), 
-    // o está implícito en el número de actos "c". Si quisieras condón contigo, se aplicaría aquí.
-
-    // B2. Calculamos probabilidad de transmisión SEGÚN ESTADIO viral de Él:
+    // PASO A: Dinámica de infección de ÉL
+    // Los sanos (S) se exponen. Una fracción se infecta y pasa a Eclipse (E).
+    let newInfections = state.S * probHeGetsInfectedMonth;
     
-    // - Crónico:
-    let pTxChronic = probAtLeastOne(rTxBase, actsYou);
-    
-    // - Agudo (x12):
-    let rTxAcute = useAcute ? Math.min(1, rTxBase * CONSTANTS.ACUTE_MULTIPLIER) : rTxBase;
-    let pTxAcute = probAtLeastOne(rTxAcute, actsYou);
+    // Actualizamos probabilidad total de que él tenga VIH
+    cumulativeHeInfected += newInfections; 
+    dataHeCumulative.push(cumulativeHeInfected);
 
-    // - Eclipse (El mes actual):
-    // Aquí es donde importa el "Eclipse Period" y el "Order".
-    // Si se infectó este mes, los primeros ~10 días (0.33 del mes) NO contagia.
-    // Además, depende de si tus actos fueron antes o después.
-    // Factor de coincidencia: ¿Qué prob hay de que tus actos ocurran CUANDO él ya es contagioso?
+    // PASO B: Riesgo de transmisión hacia TI (Receptivo)
+    // Calculamos el riesgo ponderado según en qué estado esté él
     
-    let exposureFactor = 0;
-    if (actsThird > 0 && actsYou > 0) {
-        // Lógica simplificada de solapamiento temporal
-        // Si es "Random": Asumimos distribución uniforme. El riesgo es aprox la mitad del tiempo efectivo post-eclipse.
-        // Si es "Worst": Él se infecta al principio, pasa eclipse, y luego te da a ti.
-        
-        let infectiousWindow = 1.0 - CONSTANTS.ECLIPSE_FRACTION; // Tiempo restante del mes tras eclipse (ej. 20 días)
-        if (infectiousWindow < 0) infectiousWindow = 0;
+    // Riesgo base hacia ti (Asumimos sin condón con pareja estable, o condón implícito en 'ActsYou' si el usuario lo calcula mentalmente, pero el estándar es raw en pareja)
+    // Si quisieras añadir condón contigo, reduciría rBaseTx. Usamos raw por defecto para "peor caso".
+    let rBaseTx = CONSTANTS.RISK_RECEPTIVE;
 
-        if (orderMode === 'worst') {
-            exposureFactor = infectiousWindow; // Casi todo el riesgo posible
-        } else {
-            exposureFactor = infectiousWindow * 0.5; // Promedio estadístico
-        }
-    }
+    // 1. Riesgo desde Crónicos
+    let pTx_Chronic = probEvent(rBaseTx * CONSTANTS.CHRONIC_MULTIPLIER, nActsYou);
     
-    // Riesgo del grupo "Recién infectado este mes":
-    // Usamos la tasa Aguda porque la viremia sube rápido tras el eclipse.
-    let pTxNew = probAtLeastOne(rTxAcute * exposureFactor, actsYou); 
+    // 2. Riesgo desde Agudos 1 (Explosión viral)
+    let pTx_Acute1 = probEvent(Math.min(1, rBaseTx * CONSTANTS.ACUTE_PHASE_1_MULTIPLIER), nActsYou);
+    
+    // 3. Riesgo desde Agudos 2
+    let pTx_Acute2 = probEvent(Math.min(1, rBaseTx * CONSTANTS.ACUTE_PHASE_2_MULTIPLIER), nActsYou);
 
-    // C. Riesgo TOTAL para TI en el mes M
-    // Es la suma ponderada de riesgos provenientes de cada sub-población de Él
-    let riskFromChronic = state.I_Chronic * pTxChronic;
-    let riskFromAcute1  = state.I_Acute1 * pTxAcute;
-    let riskFromAcute2  = state.I_Acute2 * pTxAcute;
-    let riskFromNew     = newInfections * pTxNew; // Los que se acaban de infectar
-    
-    // Como son eventos mutuamente excluyentes (él está en un solo estado), se suman las probabilidades ponderadas
-    // (Aproximación válida para p < 0.1)
-    let probInfectionYouMonth = riskFromChronic + riskFromAcute1 + riskFromAcute2 + riskFromNew;
-    
-    // Guardamos datos
-    dataRiskMonthly.push(probInfectionYouMonth);
-    currentSafety *= (1 - probInfectionYouMonth);
-    dataRiskCum.push(1 - currentSafety);
+    // 4. Riesgo desde Recién Infectados (Eclipse/Early Acute)
+    // Aquí está la matemática fina: Si se infecta este mes, hay ~12 días de eclipse (no contagia).
+    // Solo es infeccioso los 18 días restantes.
+    // Factor de exposición temporal = (30 - 12) / 30 = 0.6
+    // Pero en esos 18 días, la carga viral sube rapidísimo. Usamos el multiplier A1.
+    let effectiveExposure = Math.max(0, (30 - CONSTANTS.ECLIPSE_DAYS) / 30);
+    // Asumimos distribución uniforme de tus actos en el mes:
+    let adjustedActs = nActsYou * effectiveExposure; 
+    let pTx_EclipseGroup = probEvent(Math.min(1, rBaseTx * CONSTANTS.ACUTE_PHASE_1_MULTIPLIER), adjustedActs);
 
-    // D. AVANZAR ESTADOS de Él para el mes siguiente
-    state.I_Chronic += state.I_Acute2; // Los de Acute2 pasan a Crónico
-    state.I_Acute2 = state.I_Acute1;   // Los de Acute1 pasan a Acute2
-    state.I_Acute1 = newInfections;    // Los nuevos (que eran Eclipse) pasan a Acute1 (mes completo agudo)
-    state.S = state.S - newInfections; // Los sanos disminuyen
+    // Riesgo Total Mes M = Suma ponderada de probabilidades
+    // (Dado que los estados son mutuamente excluyentes para un individuo, sumamos Prob(Estado) * Riesgo(Estado))
+    let riskMonthYou = 
+      (state.C  * pTx_Chronic) +
+      (state.A2 * pTx_Acute2) +
+      (state.A1 * pTx_Acute1) +
+      (newInfections * pTx_EclipseGroup); // Usamos newInfections como el grupo "E" activo
+
+    // PASO C: Actualizar Tu Estado
+    currentSafetyYou *= (1 - riskMonthYou);
+    dataYouCumulative.push(1 - currentSafetyYou);
+
+    // PASO D: Transición de Estados de ÉL para el mes siguiente
+    // Flujo: S -> E(hoy) -> A1(mes sig) -> A2(mes sig) -> C
+    state.C  += state.A2; // Los de A2 pasan a Crónico
+    state.A2 = state.A1;  // Los de A1 pasan a A2
+    state.A1 = newInfections; // Los nuevos de este mes serán A1 completo el siguiente
+    state.S  -= newInfections;
   }
 
-  // Resultados finales
-  let finalRisk = 1 - currentSafety;
-  let avgMonthly = dataRiskMonthly.reduce((a,b)=>a+b,0) / months;
+  // --- RESULTADOS FINALES ---
+  let finalRiskYou = 1 - currentSafetyYou;
+  // Promedio mensual geométrico aproximado
+  let avgMonthlyRisk = 1 - Math.pow(1 - finalRiskYou, 1/months);
 
-  ui.rMonth.innerText = fmtPct(avgMonthly);
-  ui.rMonthN.innerText = fmtOneIn(avgMonthly);
-  
-  ui.rTotal.innerText = fmtPct(finalRisk);
-  ui.rTotalN.innerText = fmtOneIn(finalRisk);
+  ui.resM.innerText = fmtPct(avgMonthlyRisk);
+  ui.resMT.innerText = fmtOneIn(avgMonthlyRisk);
+  ui.resT.innerText = fmtPct(finalRiskYou);
+  ui.resTT.innerText = fmtOneIn(finalRiskYou);
 
-  let coins = finalRisk > 0 ? -Math.log2(finalRisk).toFixed(1) : "Inf";
-  ui.rCoin.innerText = coins;
-
-  drawChart(dataRiskCum);
+  drawChart(dataYouCumulative, dataHeCumulative);
 }
 
-function drawChart(data) {
-  const w = ctx.canvas.width;
-  const h = ctx.canvas.height;
+// --- VISUALIZACIÓN ---
+function drawChart(dataYou, dataHe) {
+  const w = ctx.canvas.width = ctx.canvas.offsetWidth;
+  const h = ctx.canvas.height = ctx.canvas.offsetHeight;
   ctx.clearRect(0,0,w,h);
-  
-  // Config
-  const pad = 40;
-  const gw = w - pad*2;
-  const gh = h - pad*2;
-  
-  const maxVal = Math.max(0.01, ...data); // Minimo 1% escala
-  const yScale = gh / (maxVal * 1.1);
-  const xScale = gw / (data.length - 1);
+
+  const padL = 40, padB = 30, padT = 20, padR = 20;
+  const chartW = w - padL - padR;
+  const chartH = h - padB - padT;
+
+  // Escala Y dinámica (mínimo 5%)
+  let maxVal = Math.max(0.05, ...dataYou, ...dataHe);
+  if(maxVal > 1) maxVal = 1;
 
   // Grid
-  ctx.strokeStyle = "#333";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#333"; ctx.lineWidth = 1;
   ctx.beginPath();
-  // Eje Y (0, 50%, 100% relative to max)
-  ctx.moveTo(pad, h-pad); ctx.lineTo(w-pad, h-pad);
+  ctx.moveTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); // X
+  ctx.moveTo(padL, h-padB); ctx.lineTo(padL, padT); // Y
   ctx.stroke();
 
-  // Línea
-  ctx.strokeStyle = "#ff4fa3"; // Accent
-  ctx.lineWidth = 3;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.beginPath();
-  
-  // Sombra (Fill)
-  ctx.fillStyle = "rgba(255, 79, 163, 0.1)";
-  ctx.beginPath();
-  ctx.moveTo(pad, h-pad);
-  
-  data.forEach((p, i) => {
-    const x = pad + i * xScale;
-    const y = (h - pad) - (p * yScale);
-    ctx.lineTo(x, y);
-  });
-  
-  ctx.lineTo(pad + (data.length-1)*xScale, h-pad);
-  ctx.fill();
+  // Helper dibujar linea
+  const drawLine = (data, color, fill) => {
+    ctx.beginPath();
+    ctx.strokeStyle = color; ctx.lineWidth = 3;
+    let stepX = chartW / (Math.max(1, data.length - 1));
+    
+    data.forEach((val, i) => {
+      let x = padL + (i * stepX);
+      let y = (h - padB) - ((val / maxVal) * chartH);
+      if(i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    
+    if(fill) {
+      ctx.lineTo(padL + ((data.length-1)*stepX), h-padB);
+      ctx.lineTo(padL, h-padB);
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+  };
 
-  // Trazo
-  ctx.beginPath();
-  data.forEach((p, i) => {
-    const x = pad + i * xScale;
-    const y = (h - pad) - (p * yScale);
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  });
-  ctx.stroke();
+  // Dibujar ÉL (Gris)
+  drawLine(dataHe, "#444", null);
 
-  // Texto max
-  ctx.fillStyle = "#fff";
-  ctx.font = "12px monospace";
-  ctx.fillText((maxVal*1.1*100).toFixed(1) + "%", 5, 20);
-  ctx.fillText("0%", 10, h-pad);
+  // Dibujar TÚ (Accent)
+  drawLine(dataYou, "#ff2a6d", "rgba(255, 42, 109, 0.1)");
+
+  // Labels
+  ctx.fillStyle = "#666"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("Mes 1", padL, h-10);
+  ctx.fillText("Mes "+dataYou.length, w-padR, h-10);
   
-  // Meses
-  ctx.fillText("Mes 1", pad, h-10);
-  ctx.fillText("Mes "+data.length, w-pad-20, h-10);
+  ctx.textAlign = "right";
+  ctx.fillText((maxVal*100).toFixed(1)+"%", padL-5, padT+10);
+  ctx.fillText("0%", padL-5, h-padB);
 }
 
 // Listeners
-Object.values(ui).forEach(el => {
-  if(el instanceof HTMLElement) el.addEventListener('input', update);
+['prevalence','actsThird','protectionLevel','actsYou','months'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    updateLabels();
+    calculate();
+  });
 });
 
-function update() {
-  ui.gVal.innerText = ui.g.value;
-  ui.cVal.innerText = ui.c.value;
-  ui.mVal.innerText = ui.m.value;
-  ui.pPrevVal.innerText = ui.prev.value + '%';
-  ui.condomVal.innerText = ui.condom.value + '%';
-  calculate();
+function updateLabels() {
+  ui.prevD.innerText = ui.prev.value + '%';
+  ui.actsTD.innerText = ui.actsThird.value;
+  ui.actsYD.innerText = ui.actsYou.value;
+  ui.monthsD.innerText = ui.months.value + (ui.months.value == 1 ? " mes" : " meses");
 }
 
 // Init
-update();
+updateLabels();
+calculate();
 
 </script>
 </body>
